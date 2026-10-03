@@ -1,0 +1,133 @@
+<UserControl x:Class="Sz3d.App.Controls.GraphCanvasView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Sz3d.App.ViewModels"
+             xmlns:conv="clr-namespace:Sz3d.App.Converters">
+    <UserControl.Resources>
+
+        <!-- 输入端口：椭圆中心位于节点左边缘 -->
+        <DataTemplate x:Key="InputPortTemplate" DataType="{x:Type vm:PortViewModel}">
+            <Canvas Width="{x:Static vm:NodeLayout.NodeWidth}" Height="{x:Static vm:NodeLayout.PortRowHeight}">
+                <Ellipse Width="22" Height="22" Canvas.Left="-11" Canvas.Top="1" Fill="Transparent"/>
+                <Ellipse Width="12" Height="12" Canvas.Left="-6" Canvas.Top="6"
+                         Fill="{Binding DataType, Converter={StaticResource DataTypeBrush}}"
+                         Stroke="#FF111111" StrokeThickness="1.5">
+                    <Ellipse.ToolTip>
+                        <TextBlock Text="{Binding Name, StringFormat={}{0}（输入）}"/>
+                    </Ellipse.ToolTip>
+                </Ellipse>
+                <TextBlock Text="{Binding Name}" Canvas.Left="14" Canvas.Top="5" FontSize="11"
+                           Foreground="{StaticResource TextPrimary}"/>
+            </Canvas>
+        </DataTemplate>
+
+        <!-- 输出端口：椭圆中心位于节点右边缘 -->
+        <DataTemplate x:Key="OutputPortTemplate" DataType="{x:Type vm:PortViewModel}">
+            <Canvas Width="{x:Static vm:NodeLayout.NodeWidth}" Height="{x:Static vm:NodeLayout.PortRowHeight}">
+                <Ellipse Width="22" Height="22" Canvas.Left="173" Canvas.Top="1" Fill="Transparent"/>
+                <Ellipse Width="12" Height="12" Canvas.Left="178" Canvas.Top="6"
+                         Fill="{Binding DataType, Converter={StaticResource DataTypeBrush}}"
+                         Stroke="#FF111111" StrokeThickness="1.5">
+                    <Ellipse.ToolTip>
+                        <TextBlock Text="{Binding Name, StringFormat={}{0}（输出）}"/>
+                    </Ellipse.ToolTip>
+                </Ellipse>
+                <TextBlock Text="{Binding Name}" Canvas.Right="14" Canvas.Top="5" FontSize="11"
+                           Foreground="{StaticResource TextPrimary}"/>
+            </Canvas>
+        </DataTemplate>
+
+        <!-- 节点模板 -->
+        <DataTemplate x:Key="NodeTemplate" DataType="{x:Type vm:NodeViewModel}">
+            <Grid Width="{Binding Width}" Height="{Binding Height}" Background="Transparent">
+                <Border Background="{StaticResource NodeBody}" CornerRadius="6">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="BorderBrush" Value="{StaticResource NodeBorder}"/>
+                            <Setter Property="BorderThickness" Value="1"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                    <Setter Property="BorderBrush" Value="{StaticResource Accent}"/>
+                                    <Setter Property="BorderThickness" Value="2"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <Border.ToolTip>
+                        <StackPanel MaxWidth="260">
+                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
+                            <TextBlock Text="{Binding Description}" TextWrapping="Wrap" Foreground="{StaticResource TextSecondary}" FontSize="11"/>
+                        </StackPanel>
+                    </Border.ToolTip>
+                    <Grid>
+                        <Border Background="{Binding Category, Converter={StaticResource CategoryBrush}}"
+                                Height="28" VerticalAlignment="Top" CornerRadius="5,5,0,0">
+                            <Grid>
+                                <TextBlock Text="{Binding Title}" Foreground="White" FontWeight="SemiBold"
+                                           FontSize="12" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding Category}" Foreground="#AAFFFFFF" FontSize="9"
+                                           HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            </Grid>
+                        </Border>
+
+                        <TextBlock Text="{Binding StatusText}" Foreground="#9FFFFFFF" FontSize="10"
+                                   HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,30,8,0"/>
+
+                        <ItemsControl ItemsSource="{Binding Inputs}" ItemTemplate="{StaticResource InputPortTemplate}">
+                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemContainerStyle>
+                                <Style TargetType="ContentPresenter">
+                                    <Setter Property="Canvas.Left" Value="0"/>
+                                    <Setter Property="Canvas.Top" Value="{Binding Top}"/>
+                                </Style>
+                            </ItemsControl.ItemContainerStyle>
+                        </ItemsControl>
+
+                        <ItemsControl ItemsSource="{Binding Outputs}" ItemTemplate="{StaticResource OutputPortTemplate}">
+                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemContainerStyle>
+                                <Style TargetType="ContentPresenter">
+                                    <Setter Property="Canvas.Left" Value="0"/>
+                                    <Setter Property="Canvas.Top" Value="{Binding Top}"/>
+                                </Style>
+                            </ItemsControl.ItemContainerStyle>
+                        </ItemsControl>
+                    </Grid>
+                </Border>
+            </Grid>
+        </DataTemplate>
+
+        <!-- 连线模板 -->
+        <DataTemplate DataType="{x:Type vm:ConnectionViewModel}">
+            <Path Data="{Binding Geometry}" Stroke="{Binding Brush}"
+                  StrokeThickness="{Binding StrokeThickness}" Fill="Transparent"/>
+        </DataTemplate>
+
+    </UserControl.Resources>
+
+    <Grid x:Name="Root" Background="{StaticResource WindowBackground}"
+          AllowDrop="True" ClipToBounds="True"
+          Loaded="OnLoaded"
+          MouseWheel="OnMouseWheel"
+          MouseLeftButtonDown="OnMouseDown"
+          MouseLeftButtonUp="OnMouseUp"
+          MouseMove="OnMouseMove"
+          MouseRightButtonDown="OnRightButtonDown"
+          DragOver="OnDragOver" Drop="OnDrop">
+        <Grid x:Name="World">
+            <ItemsControl ItemsSource="{Binding Connections}" IsHitTestVisible="False">
+                <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+            </ItemsControl>
+            <ItemsControl ItemsSource="{Binding Nodes}" ItemTemplate="{StaticResource NodeTemplate}">
+                <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                <ItemsControl.ItemContainerStyle>
+                    <Style TargetType="ContentPresenter">
+                        <Setter Property="Canvas.Left" Value="{Binding X}"/>
+                        <Setter Property="Canvas.Top" Value="{Binding Y}"/>
+                    </Style>
+                </ItemsControl.ItemContainerStyle>
+            </ItemsControl>
+            <Canvas x:Name="TempLayer"/>
+        </Grid>
+    </Grid>
+</UserControl>
